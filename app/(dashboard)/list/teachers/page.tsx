@@ -1,4 +1,6 @@
-import React from 'react'
+'use client'
+
+import React, {useState} from 'react'
 import TableSearch from "@/app/components/TableSearch";
 import Image from "next/image";
 import Pagination from "@/app/components/Pagination";
@@ -6,6 +8,7 @@ import Table from "@/app/components/Table";
 import Link from "next/link";
 import {role, teachersData} from "@/lib/data";
 import FormModal from "@/app/components/FormModal";
+import {TeacherDetails} from "@/types/entityTypes";
 
 type Teacher = {
     id: number;
@@ -56,11 +59,23 @@ const columns = [
 
 const TeachersListPage = () => {
 
+    //states
+    const [teachers, setTeachers] = useState<TeacherDetails[]>([]);
+
+    //fetch all teacher details
+    const getAllTeachers = async ()=>{
+        try{
+
+        }catch(err){
+
+        }
+    }
+
     const renderRow = (item: Teacher) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
             <td className="flex items-center gap-4 p-4">
                 <Image
-                    src={item.photo}
+                    src={item.photo || "/noAvatar.png"}
                     alt=""
                     width={40}
                     height={40}
