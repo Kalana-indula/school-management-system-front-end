@@ -1,6 +1,6 @@
 'use client'
 
-import React, {useState} from 'react'
+import React, {useEffect, useState} from 'react'
 import TableSearch from "@/app/components/TableSearch";
 import Image from "next/image";
 import Pagination from "@/app/components/Pagination";
@@ -9,6 +9,7 @@ import Link from "next/link";
 import {role, teachersData} from "@/lib/data";
 import FormModal from "@/app/components/FormModal";
 import {TeacherDetails} from "@/types/entityTypes";
+import axios from "axios";
 
 type Teacher = {
     id: number;
@@ -62,20 +63,34 @@ const TeachersListPage = () => {
     //states
     const [teachers, setTeachers] = useState<TeacherDetails[]>([]);
 
+    useEffect(() => {
+        getAllTeachers();
+    },[])
+
     //fetch all teacher details
     const getAllTeachers = async ()=>{
         try{
-
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/teachers`);
+            console.log(response.data);
+            setTeachers(response.data);
         }catch(err){
+            let message = 'Failed to fetch teachers. Please try again later.';
 
+            if (axios.isAxiosError(err)) {
+                message = err.response?.data?.message || err.message || message;
+            } else if (err instanceof Error) {
+                message = err.message;
+            }
+
+            console.error('Error fetching teachers:', err);
         }
     }
 
-    const renderRow = (item: Teacher) => (
-        <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
+    const renderRow = (item: TeacherDetails) => (
+        <tr key={item.teacherId} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
             <td className="flex items-center gap-4 p-4">
                 <Image
-                    src={item.photo || "/noAvatar.png"}
+                    src={item.img || "/noAvatar.png"}
                     alt=""
                     width={40}
                     height={40}
@@ -86,14 +101,14 @@ const TeachersListPage = () => {
                     <p className="text-xs text-gray-500">{item?.email}</p>
                 </div>
             </td>
-            <td className="hidden md:table-cell">{item.id}</td>
-            <td className="hidden md:table-cell">{item.subjects.join(",")}</td>
-            <td className="hidden md:table-cell">{item.classes.join(",")}</td>
+            <td className="hidden md:table-cell">{item.teacherId}</td>
+            <td className="hidden md:table-cell">{item.subjects}</td>
+            <td className="hidden md:table-cell">{item.classes}</td>
             <td className="hidden md:table-cell">{item.phone}</td>
             <td className="hidden md:table-cell">{item.address}</td>
             <td>
                 <div className="flex items-center gap-2">
-                    <Link href={`/list/teachers/${item.id}`}>
+                    <Link href={`/list/teachers/${item.teacherId}`}>
                         <button className="w-7 h-7 flex items-center justify-center rounded-full bg-myskyblue">
                             <Image src={`/view.png`} alt={``} width={16} height={16}/>
                         </button>
@@ -103,7 +118,7 @@ const TeachersListPage = () => {
                             // <button className="w-7 h-7 flex items-center justify-center rounded-full bg-mypurple">
                             //     <Image src={`/delete.png`} alt={``} width={16} height={16}/>
                             // </button>
-                            <FormModal table={`teacher`} type={`delete`} id={item.id}/>
+                            <FormModal table={`teacher`} type={`delete`} id={item.teacherId}/>
                         )}
                 </div>
             </td>
@@ -134,7 +149,7 @@ const TeachersListPage = () => {
                 </div>
             </div>
             {/*  LIST  */}
-            <Table columns={columns} renderRow={renderRow} data={teachersData}/>
+            <Table columns={columns} renderRow={renderRow} data={teachers}/>
             {/*   PAGINATION */}
             <Pagination/>
         </div>
