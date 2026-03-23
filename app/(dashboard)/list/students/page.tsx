@@ -1,4 +1,6 @@
-import React from 'react'
+'use client'
+
+import React, {useEffect, useState} from 'react'
 import Image from "next/image";
 import Link from "next/link";
 import {role, studentsData, teachersData} from "@/lib/data";
@@ -6,6 +8,8 @@ import TableSearch from "@/app/components/TableSearch";
 import Table from "@/app/components/Table";
 import Pagination from "@/app/components/Pagination";
 import FormModal from "@/app/components/FormModal";
+import {StudentDetails} from "@/types/entityTypes";
+import axios from "axios";
 
 type Student = {
     id: number;
@@ -50,11 +54,30 @@ const columns = [
 ]
 
 const StudentsListPage = () => {
-    const renderRow = (item: Student) => (
+
+    //states
+    const [students, setStudents] = useState<StudentDetails[]>([]);
+
+    useEffect(() => {
+        getAllStudents();
+    },[])
+
+    //get all student details
+    const getAllStudents = async () => {
+        try {
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/students`);
+            console.log(response.data);
+            setStudents(response.data);
+        }catch (error) {
+
+        }
+    }
+
+    const renderRow = (item: StudentDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
             <td className="flex items-center gap-4 p-4">
                 <Image
-                    src={item.photo}
+                    src={item.image}
                     alt=""
                     width={40}
                     height={40}
@@ -62,7 +85,7 @@ const StudentsListPage = () => {
                 />
                 <div className="flex flex-col">
                     <h3 className="font-extrabold">{item.name}</h3>
-                    <p className="text-xs text-gray-500">{item?.class}</p>
+                    <p className="text-xs text-gray-500">{item?.className}</p>
                 </div>
             </td>
             <td className="hidden md:table-cell">{item.id}</td>
@@ -113,7 +136,7 @@ const StudentsListPage = () => {
                 </div>
             </div>
             {/*  LIST  */}
-            <Table columns={columns} renderRow={renderRow} data={studentsData}/>
+            <Table columns={columns} renderRow={renderRow} data={students}/>
             {/*   PAGINATION */}
             <Pagination/>
         </div>

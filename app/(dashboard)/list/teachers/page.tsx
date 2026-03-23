@@ -11,17 +11,6 @@ import FormModal from "@/app/components/FormModal";
 import {TeacherDetails} from "@/types/entityTypes";
 import axios from "axios";
 
-type Teacher = {
-    id: number;
-    name: string;
-    email?: string;
-    photo: string;
-    phone: string;
-    subjects: string[];
-    classes: string[];
-    address: string;
-}
-
 const columns = [
     {
         header: "Info",
@@ -87,7 +76,7 @@ const TeachersListPage = () => {
     }
 
     const renderRow = (item: TeacherDetails) => (
-        <tr key={item.teacherId} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
+        <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
             <td className="flex items-center gap-4 p-4">
                 <Image
                     src={item.img || "/noAvatar.png"}
@@ -118,7 +107,7 @@ const TeachersListPage = () => {
                             // <button className="w-7 h-7 flex items-center justify-center rounded-full bg-mypurple">
                             //     <Image src={`/delete.png`} alt={``} width={16} height={16}/>
                             // </button>
-                            <FormModal table={`teacher`} type={`delete`} id={item.teacherId}/>
+                            <FormModal table={`teacher`} type={`delete`} id={item.id}/>
                         )}
                 </div>
             </td>

@@ -1,4 +1,5 @@
 export interface TeacherDetails{
+    id:number;
     address: string;
     classes: string[];
     email?: string;
@@ -7,4 +8,15 @@ export interface TeacherDetails{
     phone: string;
     subjects: string[];
     teacherId: string;
+}
+
+export interface StudentDetails {
+    id: number;
+    name: string;
+    studentId: string;
+    grade: number;
+    className: string;
+    image: string;
+    phone?: string;
+    address: string;
 }
