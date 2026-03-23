@@ -1,4 +1,6 @@
-import React from 'react'
+'use client'
+
+import React, {useEffect, useState} from 'react'
 import TableSearch from "@/app/components/TableSearch";
 import Image from "next/image";
 import Pagination from "@/app/components/Pagination";
@@ -6,6 +8,8 @@ import Table from "@/app/components/Table";
 import Link from "next/link";
 import {parentsData, role} from "@/lib/data";
 import FormModal from "@/app/components/FormModal";
+import {ParentDetails} from "@/types/entityTypes";
+import axios from "axios";
 
 type Parent = {
     id: number;
@@ -44,7 +48,32 @@ const columns = [
 
 const ParentsListPage = () => {
 
-    const renderRow = (item: Parent) => (
+    //states
+    const [parents,setParents] = useState<ParentDetails[]>([])
+
+    useEffect(() => {
+        getParents();
+    },[])
+
+    const getParents=async ()=>{
+        try {
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/parents`);
+            console.log(response.data);
+            setParents(response.data);
+        }catch (err) {
+            let message = 'Failed to fetch teachers. Please try again later.';
+
+            if (axios.isAxiosError(err)) {
+                message = err.response?.data?.message || err.message || message;
+            } else if (err instanceof Error) {
+                message = err.message;
+            }
+
+            console.error('Error fetching teachers:', err);
+        }
+    }
+
+    const renderRow = (item: ParentDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
             <td className="flex items-center gap-4 p-4">
                 <div className="flex flex-col">
@@ -90,7 +119,7 @@ const ParentsListPage = () => {
                 </div>
             </div>
             {/*  LIST  */}
-            <Table columns={columns} renderRow={renderRow} data={parentsData}/>
+            <Table columns={columns} renderRow={renderRow} data={parents}/>
             {/*   PAGINATION */}
             <Pagination/>
         </div>

@@ -20,3 +20,12 @@ export interface StudentDetails {
     phone?: string;
     address: string;
 }
+
+export interface ParentDetails {
+    id: number;
+    name: string;
+    phone: string;
+    address: string;
+    email?: string;
+    students: string[];
+}

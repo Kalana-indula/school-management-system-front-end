@@ -68,8 +68,16 @@ const StudentsListPage = () => {
             const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/students`);
             console.log(response.data);
             setStudents(response.data);
-        }catch (error) {
+        }catch (err) {
+            let message = 'Failed to fetch teachers. Please try again later.';
 
+            if (axios.isAxiosError(err)) {
+                message = err.response?.data?.message || err.message || message;
+            } else if (err instanceof Error) {
+                message = err.message;
+            }
+
+            console.error('Error fetching teachers:', err);
         }
     }
 
@@ -77,7 +85,7 @@ const StudentsListPage = () => {
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
             <td className="flex items-center gap-4 p-4">
                 <Image
-                    src={item.image}
+                    src={item.image || "/noAvatar.png"}
                     alt=""
                     width={40}
                     height={40}
