@@ -5,20 +5,10 @@ import TableSearch from "@/app/components/TableSearch";
 import Image from "next/image";
 import Pagination from "@/app/components/Pagination";
 import Table from "@/app/components/Table";
-import Link from "next/link";
-import {parentsData, role} from "@/lib/data";
+import { role} from "@/lib/data";
 import FormModal from "@/app/components/FormModal";
 import {ParentDetails} from "@/types/entityTypes";
 import axios from "axios";
-
-type Parent = {
-    id: number;
-    name: string;
-    email?: string;
-    students: string[];
-    phone: string;
-    address: string;
-}
 
 const columns = [
     {
@@ -46,42 +36,87 @@ const columns = [
     }
 ]
 
+const getStudentNames = (value: unknown): string[] => {
+    if (!Array.isArray(value)) return [];
+
+    return value
+        .map((student) => {
+            if (typeof student === "string") return student;
+
+            if (student && typeof student === "object") {
+                const record = student as Record<string, unknown>;
+
+                if (typeof record.name === "string") return record.name;
+                if (typeof record.studentName === "string") return record.studentName;
+                if (typeof record.fullName === "string") return record.fullName;
+            }
+
+            return null;
+        })
+        .filter((studentName): studentName is string => Boolean(studentName));
+};
+
+const normalizeParent = (parent: unknown): ParentDetails => {
+    const record = (parent ?? {}) as Record<string, unknown>;
+
+    return {
+        id: typeof record.id === "number" ? record.id : 0,
+        name: typeof record.name === "string" ? record.name : "Unknown parent",
+        phone: typeof record.phone === "string" ? record.phone : "N/A",
+        address: typeof record.address === "string" ? record.address : "N/A",
+        email: typeof record.email === "string" ? record.email : undefined,
+        students: getStudentNames(record.students ?? record.children ?? record.studentNames),
+    };
+};
+
+
 const ParentsListPage = () => {
 
     //states
-    const [parents,setParents] = useState<ParentDetails[]>([])
+    const [parents, setParents] = useState<ParentDetails[]>([])
 
     useEffect(() => {
-        getParents();
-    },[])
+        let isMounted = true;
 
-    const getParents=async ()=>{
-        try {
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/parents`);
-            console.log(response.data);
-            setParents(response.data);
-        }catch (err) {
-            let message = 'Failed to fetch teachers. Please try again later.';
+        const getParents = async () => {
+            try {
+                const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/parents`);
+                console.log(response.data);
 
-            if (axios.isAxiosError(err)) {
-                message = err.response?.data?.message || err.message || message;
-            } else if (err instanceof Error) {
-                message = err.message;
+                if (!isMounted) return;
+
+                const parentList = Array.isArray(response.data)
+                    ? response.data.map(normalizeParent)
+                    : [];
+                setParents(parentList);
+            } catch (err) {
+                if (axios.isAxiosError(err)) {
+                    console.error('Error fetching parents:', err.response?.data?.message || err.message);
+                } else if (err instanceof Error) {
+                    console.error('Error fetching parents:', err.message);
+                } else {
+                    console.error('Error fetching parents:', err);
+                }
             }
+        };
+        getParents();
 
-            console.error('Error fetching teachers:', err);
-        }
-    }
+        return () => {
+            isMounted = false;
+        };
+    }, [])
 
     const renderRow = (item: ParentDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
             <td className="flex items-center gap-4 p-4">
                 <div className="flex flex-col">
                     <h3 className="font-extrabold">{item.name}</h3>
-                    <p className="text-xs text-gray-500">{item?.email}</p>
+                    <p className="text-xs text-gray-500">{item.email ?? "No email provided"}</p>
                 </div>
             </td>
-            <td className="hidden md:table-cell">{item.students.join(",")}</td>
+            <td className="hidden md:table-cell">
+                {item.students.length > 0 ? item.students.join(", ") : "No students assigned"}
+            </td>
             <td className="hidden md:table-cell">{item.phone}</td>
             <td className="hidden md:table-cell">{item.address}</td>
             <td>
@@ -113,7 +148,7 @@ const ParentsListPage = () => {
                             <Image src={`/sort.png`} alt={`sort`} width={14} height={14}/>
                         </button>
                         {role === "admin" && (
-                            <FormModal table={`teacher`} type={`create`}/>
+                            <FormModal table={`parent`} type={`create`}/>
                         )}
                     </div>
                 </div>

@@ -1,17 +1,15 @@
-import React from 'react'
+'use client'
+
+import React, {useEffect, useState} from 'react'
 import TableSearch from "@/app/components/TableSearch";
 import Image from "next/image";
 import Pagination from "@/app/components/Pagination";
 import Table from "@/app/components/Table";
 import Link from "next/link";
-import {announcementsData, role} from "@/lib/data";
-
-type Announcement = {
-    id: number;
-    title: string;
-    class: string;
-    date:string;
-}
+import {role} from "@/lib/data";
+import {AnnouncementDetails} from "@/types/entityTypes";
+import axios from "axios";
+import FormModal from "@/app/components/FormModal";
 
 const columns = [
     {
@@ -35,10 +33,34 @@ const columns = [
 
 const AnnouncementListPage = () => {
 
-    const renderRow = (item: Announcement) => (
+    const [announcements,setAnnouncements] = useState<AnnouncementDetails []>([]);
+
+    useEffect(() => {
+        getAnnouncementList();
+    },[]);
+
+    const getAnnouncementList = async ()=>{
+        try {
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/announcements`);
+            console.log(response.data);
+            setAnnouncements(response.data);
+        }catch (err){
+            let message = 'Failed to fetch exams. Please try again later.';
+
+            if (axios.isAxiosError(err)) {
+                message = err.response?.data?.message || err.message || message;
+            } else if (err instanceof Error) {
+                message = err.message;
+            }
+
+            console.error('Error fetching exams:', err);
+        }
+    }
+
+    const renderRow = (item: AnnouncementDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
             <td className="flex items-center gap-4 p-4">{item.title}</td>
-            <td>{item.class}</td>
+            <td>{item.className}</td>
             <td className="hidden md:table-cell">{item.date}</td>
             <td>
                 <div className="flex items-center gap-2">
@@ -71,14 +93,14 @@ const AnnouncementListPage = () => {
                         <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mypeachyellow">
                             <Image src={`/sort.png`} alt={`sort`} width={14} height={14}/>
                         </button>
-                        {role === "admin" && (<button className="w-8 h-8 flex items-center justify-center rounded-full bg-mypeachyellow">
-                            <Image src={`/plus.png`} alt={`plus`} width={14} height={14}/>
-                        </button>)}
+                        {role === "admin" && (
+                            <FormModal table={`announcement`} type={`create`}/>
+                        )}
                     </div>
                 </div>
             </div>
             {/*  LIST  */}
-            <Table columns={columns} renderRow={renderRow} data={announcementsData}/>
+            <Table columns={columns} renderRow={renderRow} data={announcements}/>
             {/*   PAGINATION */}
             <Pagination/>
         </div>

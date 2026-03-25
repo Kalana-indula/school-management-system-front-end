@@ -29,3 +29,66 @@ export interface ParentDetails {
     email?: string;
     students: string[];
 }
+
+export interface SubjectDetails {
+    id: number;
+    subjectName: string;
+    teacherList: string;
+}
+
+export interface ClassRoomDetails {
+    id: number;
+    name: string;
+    grade: number;
+    capacity: number;
+    supervisor: string;
+}
+
+export interface LessonDetails {
+    id: number;
+    className:string;
+    subjectName: string;
+    teacher: string;
+}
+
+export interface ExamDetails{
+    id: number;
+    date: string;
+    className: string;
+    subjectName: string;
+    teacher: string;
+}
+
+export interface AssignmentDetails{
+    id:number;
+    className:string;
+    dueDate: string;
+    subjectName: string;
+    teacher: string;
+}
+
+export interface ResultDetails{
+    id: number;
+    className: string;
+    date: string;
+    score: number;
+    subjectName: string;
+    student:string;
+    teacher:string;
+}
+
+export interface EventDetails{
+    id: number;
+    className: string;
+    date: string;
+    endTime: string;
+    startTime: string;
+    title: string;
+}
+
+export interface AnnouncementDetails{
+    id: number;
+    title: string;
+    date: string;
+    className: string;
+}

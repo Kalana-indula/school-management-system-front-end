@@ -1,10 +1,15 @@
-import React from 'react'
+'use client'
+
+import React, {useEffect, useState} from 'react'
 import TableSearch from "@/app/components/TableSearch";
 import Image from "next/image";
 import Pagination from "@/app/components/Pagination";
 import Table from "@/app/components/Table";
 import Link from "next/link";
 import {classesData, lessonsData, role, subjectsData} from "@/lib/data";
+import {LessonDetails} from "@/types/entityTypes";
+import axios from "axios";
+import FormModal from "@/app/components/FormModal";
 
 type Lesson = {
     id: number;
@@ -35,10 +40,35 @@ const columns = [
 
 const LessonsListPage = () => {
 
-    const renderRow = (item: Lesson) => (
+    const [lessons, setLessons] = useState<LessonDetails[]>([]);
+
+    useEffect(() => {
+        getLessonList();
+    }, []);
+
+    const getLessonList = async () => {
+
+        try{
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/lessons`);
+            console.log(response.data);
+            setLessons(response.data);
+        }catch(err){
+            let message = 'Failed to fetch lessons. Please try again later.';
+
+            if (axios.isAxiosError(err)) {
+                message = err.response?.data?.message || err.message || message;
+            } else if (err instanceof Error) {
+                message = err.message;
+            }
+
+            console.error('Error fetching lessons:', err);
+        }
+    }
+
+    const renderRow = (item: LessonDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
-            <td className="flex items-center gap-4 p-4">{item.subject}</td>
-            <td>{item.class}</td>
+            <td className="flex items-center gap-4 p-4">{item.subjectName}</td>
+            <td>{item.className}</td>
             <td className="hidden md:table-cell">{item.teacher}</td>
             <td>
                 <div className="flex items-center gap-2">
@@ -71,14 +101,14 @@ const LessonsListPage = () => {
                         <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mypeachyellow">
                             <Image src={`/sort.png`} alt={`sort`} width={14} height={14}/>
                         </button>
-                        {role === "admin" && (<button className="w-8 h-8 flex items-center justify-center rounded-full bg-mypeachyellow">
-                            <Image src={`/plus.png`} alt={`plus`} width={14} height={14}/>
-                        </button>)}
+                        {role === "admin" && (
+                            <FormModal table={`lesson`} type={`create`}/>
+                        )}
                     </div>
                 </div>
             </div>
             {/*  LIST  */}
-            <Table columns={columns} renderRow={renderRow} data={lessonsData}/>
+            <Table columns={columns} renderRow={renderRow} data={lessons}/>
             {/*   PAGINATION */}
             <Pagination/>
         </div>
