@@ -10,6 +10,7 @@ import {role, teachersData} from "@/lib/data";
 import FormModal from "@/app/components/FormModal";
 import {TeacherDetails} from "@/types/entityTypes";
 import axios from "axios";
+import {ITEM_PER_PAGE} from "@/lib/settings";
 
 const columns = [
     {
@@ -48,20 +49,32 @@ const columns = [
 ]
 
 const TeachersListPage = () => {
-
     //states
     const [teachers, setTeachers] = useState<TeacherDetails[]>([]);
 
-    useEffect(() => {
-        getAllTeachers();
-    },[])
+    //store teachers count
+    const [teacherCount,setTeachersCount] = useState<number>(0);
+
+    //page
+    const [page,setPage]=useState<number>(1);
 
     //fetch all teacher details
     const getAllTeachers = async ()=>{
         try{
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/teachers`);
-            console.log(response.data);
-            setTeachers(response.data);
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/teachers`,{
+                params:{
+                    page:1,
+                    size:ITEM_PER_PAGE
+                }
+            });
+            const fetchedTeachers = Array.isArray(response.data)
+                ? response.data.slice(0, ITEM_PER_PAGE)
+                : [];
+
+            setTeachers(fetchedTeachers);
+            setTeachersCount(fetchedTeachers.length);
+            console.log("teacher count" +teacherCount);
+
         }catch(err){
             let message = 'Failed to fetch teachers. Please try again later.';
 
@@ -74,6 +87,12 @@ const TeachersListPage = () => {
             console.error('Error fetching teachers:', err);
         }
     }
+
+    useEffect(() => {
+        Promise.resolve().then(()=>{
+            getAllTeachers();
+        })
+    }, []);
 
     const renderRow = (item: TeacherDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
@@ -140,7 +159,7 @@ const TeachersListPage = () => {
             {/*  LIST  */}
             <Table columns={columns} renderRow={renderRow} data={teachers}/>
             {/*   PAGINATION */}
-            <Pagination/>
+            <Pagination page={page} count={teacherCount}/>
         </div>
     );
 }
