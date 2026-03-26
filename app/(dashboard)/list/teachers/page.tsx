@@ -87,7 +87,9 @@ const TeachersListPage = () => {
                 fetchedTeachers.length
             );
 
-            setTeachers(fetchedTeachers.slice(0, ITEM_PER_PAGE));
+            const startIndex = (currentPage - 1) * ITEM_PER_PAGE;
+            const endIndex = startIndex + ITEM_PER_PAGE;
+            setTeachers(fetchedTeachers.slice(startIndex, endIndex));
             setTeachersCount(Number.isFinite(totalCount) ? totalCount : fetchedTeachers.length);
 
         } catch (err) {
