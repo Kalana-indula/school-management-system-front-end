@@ -3,11 +3,14 @@
 import React from 'react'
 
 import {ITEM_PER_PAGE} from "@/lib/settings";
-import {useRouter} from "next/navigation";
+import {useRouter, useSearchParams} from "next/navigation";
 
 const Pagination = ({page,count}:{page:number;count:number}) => {
 
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const currentPage = Number(searchParams.get('page') || page || 1);
 
     const changePage = (newPage:number) => {
         //fetch existing params
@@ -18,7 +21,9 @@ const Pagination = ({page,count}:{page:number;count:number}) => {
 
     return (
         <div className="p-4 flex items-center justify-between text-gray-500">
-            <button disabled={true} className="py-2 px-4 rounded-md bg-slate-200 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+            <button disabled={true}
+                    className={`py-2 px-4 rounded-md bg-slate-200 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
                 Prev
             </button>
             <div className="flex items-center gap-2 text-sm">
@@ -29,7 +34,7 @@ const Pagination = ({page,count}:{page:number;count:number}) => {
                         return (
                             <button
                                 key={pageIndex}
-                                className={`cursor-pointer px-2 rounded-sm ${page === pageIndex ? "bg-myskyblue":" "}`}
+                                className={`cursor-pointer px-2 rounded-sm ${currentPage === pageIndex ? "bg-myskyblue":" "}`}
                                 onClick={()=>{
                                     changePage(pageIndex);
                                 }}
