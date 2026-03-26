@@ -53,29 +53,42 @@ const TeachersListPage = () => {
     const [teachers, setTeachers] = useState<TeacherDetails[]>([]);
 
     //store teachers count
-    const [teacherCount,setTeachersCount] = useState<number>(0);
+    const [teacherCount, setTeachersCount] = useState<number>(0);
 
     //page
-    const [page,setPage]=useState<number>(1);
+    const [page, setPage] = useState<number>(1);
 
     //fetch all teacher details
-    const getAllTeachers = async ()=>{
-        try{
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/teachers`,{
-                params:{
-                    page:1,
-                    size:ITEM_PER_PAGE
+    const getAllTeachers = async () => {
+        try {
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/teachers`, {
+                params: {
+                    page,
+                    size: ITEM_PER_PAGE
                 }
             });
-            const fetchedTeachers = Array.isArray(response.data)
-                ? response.data.slice(0, ITEM_PER_PAGE)
-                : [];
+            const payload = response.data;
+
+            const fetchedTeachers: TeacherDetails[] = Array.isArray(payload)
+                ? payload
+                : Array.isArray(payload?.content)
+                    ? payload.content
+                    : Array.isArray(payload?.data)
+                        ? payload.data
+                        : [];
+
+            const totalCount = Number(
+                payload?.totalElements ??
+                payload?.totalCount ??
+                payload?.count ??
+                payload?.meta?.total ??
+                fetchedTeachers.length
+            );
 
             setTeachers(fetchedTeachers);
-            setTeachersCount(fetchedTeachers.length);
-            console.log("teacher count" +teacherCount);
+            setTeachersCount(Number.isFinite(totalCount) ? totalCount : fetchedTeachers.length);
 
-        }catch(err){
+        } catch (err) {
             let message = 'Failed to fetch teachers. Please try again later.';
 
             if (axios.isAxiosError(err)) {
@@ -89,10 +102,8 @@ const TeachersListPage = () => {
     }
 
     useEffect(() => {
-        Promise.resolve().then(()=>{
-            getAllTeachers();
-        })
-    }, []);
+       getAllTeachers();
+    }, [page]);
 
     const renderRow = (item: TeacherDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
