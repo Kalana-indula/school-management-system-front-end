@@ -11,6 +11,7 @@ import FormModal from "@/app/components/FormModal";
 import {TeacherDetails} from "@/types/entityTypes";
 import axios from "axios";
 import {ITEM_PER_PAGE} from "@/lib/settings";
+import {useSearchParams} from "next/navigation";
 
 const columns = [
     {
@@ -56,14 +57,15 @@ const TeachersListPage = () => {
     const [teacherCount, setTeachersCount] = useState<number>(0);
 
     //page
-    const [page, setPage] = useState<number>(1);
+    const searchParams = useSearchParams();
+    const currentPage = Number(searchParams.get('page') || 1);
 
     //fetch all teacher details
     const getAllTeachers = async () => {
         try {
             const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/teachers`, {
                 params: {
-                    page,
+                    page: currentPage,
                     size: ITEM_PER_PAGE
                 }
             });
@@ -85,7 +87,7 @@ const TeachersListPage = () => {
                 fetchedTeachers.length
             );
 
-            setTeachers(fetchedTeachers);
+            setTeachers(fetchedTeachers.slice(0, ITEM_PER_PAGE));
             setTeachersCount(Number.isFinite(totalCount) ? totalCount : fetchedTeachers.length);
 
         } catch (err) {
@@ -103,7 +105,7 @@ const TeachersListPage = () => {
 
     useEffect(() => {
        getAllTeachers();
-    }, [page]);
+    }, [currentPage]);
 
     const renderRow = (item: TeacherDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
@@ -170,7 +172,7 @@ const TeachersListPage = () => {
             {/*  LIST  */}
             <Table columns={columns} renderRow={renderRow} data={teachers}/>
             {/*   PAGINATION */}
-            <Pagination page={page} count={teacherCount}/>
+            <Pagination page={currentPage} count={teacherCount}/>
         </div>
     );
 }
