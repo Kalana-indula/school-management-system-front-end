@@ -1,6 +1,6 @@
 'use client'
 
-import React, {useEffect, useState} from 'react'
+import React, {useCallback, useEffect, useState} from 'react'
 import TableSearch from "@/app/components/TableSearch";
 import Image from "next/image";
 import Pagination from "@/app/components/Pagination";
@@ -10,12 +10,8 @@ import {role, subjectsData} from "@/lib/data";
 import {SubjectDetails} from "@/types/entityTypes";
 import axios from "axios";
 import FormModal from "@/app/components/FormModal";
-
-type Subject = {
-    id: number;
-    name: string;
-    teachers:string[];
-}
+import {ITEM_PER_PAGE} from "@/lib/settings";
+import {useSearchParams} from "next/navigation";
 
 const columns = [
     {
@@ -36,17 +32,47 @@ const columns = [
 const SubjectListPage = () => {
 
     const [subjects, setSubjects] = useState<SubjectDetails []>([]);
+    const [subjectCount, setSubjectCount] = useState<number>(0);
 
-    useEffect(() => {
-        getSubjectDetails();
-    },[]);
+    const searchParams = useSearchParams();
+    const currentPage = Number(searchParams.get('page') || 1);
 
-    const getSubjectDetails =async ()=>{
-        try{
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/subjects`);
-            console.log(response.data);
-            setSubjects(response.data);
-        }catch(err){
+    const getSubjectDetails = useCallback(async () => {
+        try {
+            const response = await axios.get(
+                `${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/subjects`,
+                {
+                    params: {
+                        page: currentPage,
+                        size: ITEM_PER_PAGE,
+                    },
+                }
+            );
+
+            const payload = response.data;
+
+            const fetchedSubjects: SubjectDetails[] = Array.isArray(payload)
+                ? payload
+                : Array.isArray(payload?.content)
+                    ? payload.content
+                    : Array.isArray(payload?.data)
+                        ? payload.data
+                        : [];
+
+            const totalCount = Number(
+                payload?.totalElements ??
+                payload?.totalCount ??
+                payload?.count ??
+                payload?.meta?.total ??
+                fetchedSubjects.length
+            );
+
+            const startIndex = (currentPage - 1) * ITEM_PER_PAGE;
+            const endIndex = startIndex + ITEM_PER_PAGE;
+
+            setSubjects(fetchedSubjects.slice(startIndex, endIndex));
+            setSubjectCount(Number.isFinite(totalCount) ? totalCount : fetchedSubjects.length);
+        } catch (err) {
             let message = 'Failed to fetch subjects. Please try again later.';
 
             if (axios.isAxiosError(err)) {
@@ -55,9 +81,13 @@ const SubjectListPage = () => {
                 message = err.message;
             }
 
-            console.error('Error fetching subjects:', err);
+            console.error('Error fetching subjects:', message);
         }
-    }
+    }, [currentPage]);
+
+    useEffect(() => {
+        getSubjectDetails();
+    },[getSubjectDetails]);
 
     const renderRow = (item: SubjectDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
@@ -107,7 +137,7 @@ const SubjectListPage = () => {
             {/*  LIST  */}
             <Table columns={columns} renderRow={renderRow} data={subjects}/>
             {/*   PAGINATION */}
-            <Pagination/>
+            <Pagination page={currentPage} count={subjectCount}/>
         </div>
     );
 }

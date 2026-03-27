@@ -9,6 +9,7 @@ import { role} from "@/lib/data";
 import FormModal from "@/app/components/FormModal";
 import {ParentDetails} from "@/types/entityTypes";
 import axios from "axios";
+import {useSearchParams} from "next/navigation";
 
 const columns = [
     {
@@ -74,6 +75,13 @@ const ParentsListPage = () => {
 
     //states
     const [parents, setParents] = useState<ParentDetails[]>([])
+
+    //store students count
+    const [studentCount, setStudentCount] = useState<number>(0);
+
+    //page
+    const searchParams = useSearchParams();
+    const currentPage = Number(searchParams.get('page') || 1);
 
     useEffect(() => {
         let isMounted = true;
