@@ -10,13 +10,8 @@ import {classesData, lessonsData, role, subjectsData} from "@/lib/data";
 import {LessonDetails} from "@/types/entityTypes";
 import axios from "axios";
 import FormModal from "@/app/components/FormModal";
-
-type Lesson = {
-    id: number;
-    subject: string;
-    class:string;
-    teacher:string;
-}
+import {useSearchParams} from "next/navigation";
+import {ITEM_PER_PAGE} from "@/lib/settings";
 
 const columns = [
     {
@@ -41,17 +36,42 @@ const columns = [
 const LessonsListPage = () => {
 
     const [lessons, setLessons] = useState<LessonDetails[]>([]);
+    const [lessonCount, setLessonCount] = useState<number>(0);
 
-    useEffect(() => {
-        getLessonList();
-    }, []);
+    const searchParams = useSearchParams();
+    const currentPage = Number(searchParams.get('page') || 1);
 
     const getLessonList = async () => {
 
         try{
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/lessons`);
-            console.log(response.data);
-            setLessons(response.data);
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/lessons`, {
+                params: {
+                    page: currentPage,
+                    size: ITEM_PER_PAGE
+                }
+            });
+            const payload = response.data;
+
+            const fetchedLessons: LessonDetails[] = Array.isArray(payload)
+                ? payload
+                : Array.isArray(payload?.content)
+                    ? payload.content
+                    : Array.isArray(payload?.data)
+                        ? payload.data
+                        : [];
+
+            const totalCount = Number(
+                payload?.totalElements ??
+                payload?.totalCount ??
+                payload?.count ??
+                payload?.meta?.total ??
+                fetchedLessons.length
+            );
+
+            const startIndex = (currentPage - 1) * ITEM_PER_PAGE;
+            const endIndex = startIndex + ITEM_PER_PAGE;
+            setLessons(fetchedLessons.slice(startIndex, endIndex));
+            setLessonCount(Number.isFinite(totalCount) ? totalCount : fetchedLessons.length);
         }catch(err){
             let message = 'Failed to fetch lessons. Please try again later.';
 
@@ -64,6 +84,10 @@ const LessonsListPage = () => {
             console.error('Error fetching lessons:', err);
         }
     }
+
+    useEffect(() => {
+        getLessonList();
+    }, [currentPage]);
 
     const renderRow = (item: LessonDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
@@ -110,7 +134,7 @@ const LessonsListPage = () => {
             {/*  LIST  */}
             <Table columns={columns} renderRow={renderRow} data={lessons}/>
             {/*   PAGINATION */}
-            <Pagination/>
+            <Pagination page={currentPage} count={lessonCount}/>
         </div>
     );
 }
