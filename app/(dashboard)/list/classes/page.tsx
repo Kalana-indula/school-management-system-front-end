@@ -10,6 +10,8 @@ import {role} from "@/lib/data";
 import {ClassRoomDetails} from "@/types/entityTypes";
 import axios from "axios";
 import FormModal from "@/app/components/FormModal";
+import {useSearchParams} from "next/navigation";
+import {ITEM_PER_PAGE} from "@/lib/settings";
 
 const columns = [
     {
@@ -40,28 +42,56 @@ const columns = [
 const ClassListPage = () => {
 
     const [classList, setClassList] = useState<ClassRoomDetails[]>([]);
+    const [classCount, setClassCount] = useState<number>(0);
 
-    useEffect(() => {
-        getAllClassList();
-    },[])
+    const searchParams = useSearchParams();
+    const currentPage = Number(searchParams.get('page') || 1);
 
     const getAllClassList = async () => {
         try {
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/classes`);
-            console.log(response.data);
-            setClassList(response.data);
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/classes`, {
+                params: {
+                    page: currentPage,
+                    size: ITEM_PER_PAGE
+                }
+            });
+
+            const payload = response.data;
+            const fetchedClasses: ClassRoomDetails[] = Array.isArray(payload)
+                ? payload
+                : Array.isArray(payload?.content)
+                    ? payload.content
+                    : Array.isArray(payload?.data)
+                        ? payload.data
+                        : [];
+
+            const totalCount = Number(
+                payload?.totalElements ??
+                payload?.totalCount ??
+                payload?.count ??
+                payload?.meta?.total ??
+                fetchedClasses.length
+            );
+
+            const startIndex = (currentPage - 1) * ITEM_PER_PAGE;
+            const endIndex = startIndex + ITEM_PER_PAGE;
+            setClassList(fetchedClasses.slice(startIndex, endIndex));
+            setClassCount(Number.isFinite(totalCount) ? totalCount : fetchedClasses.length);
         }catch (err){
-            let message = 'Failed to fetch teachers. Please try again later.';
+            let message = 'Failed to fetch classes. Please try again later.';
 
             if (axios.isAxiosError(err)) {
                 message = err.response?.data?.message || err.message || message;
             } else if (err instanceof Error) {
                 message = err.message;
             }
-
-            console.error('Error fetching teachers:', err);
+            console.error('Error fetching classes:', err, message);
         }
     }
+
+    useEffect(() => {
+        getAllClassList();
+    }, [currentPage])
 
     const renderRow = (item: ClassRoomDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
@@ -109,7 +139,7 @@ const ClassListPage = () => {
             {/*  LIST  */}
             <Table columns={columns} renderRow={renderRow} data={classList}/>
             {/*   PAGINATION */}
-            <Pagination/>
+            <Pagination page={currentPage} count={classCount}/>
         </div>
     );
 }
