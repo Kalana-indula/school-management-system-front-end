@@ -3,24 +3,15 @@
 import React, {useEffect, useState} from 'react'
 import Image from "next/image";
 import Link from "next/link";
-import {role, studentsData, teachersData} from "@/lib/data";
+import {role} from "@/lib/data";
 import TableSearch from "@/app/components/TableSearch";
 import Table from "@/app/components/Table";
 import Pagination from "@/app/components/Pagination";
 import FormModal from "@/app/components/FormModal";
 import {StudentDetails} from "@/types/entityTypes";
 import axios from "axios";
-
-type Student = {
-    id: number;
-    name: string;
-    email?: string;
-    photo: string;
-    phone?: string;
-    grade: number;
-    class: string;
-    address: string;
-}
+import {useSearchParams} from "next/navigation";
+import {ITEM_PER_PAGE} from "@/lib/settings";
 
 const columns = [
     {
@@ -58,18 +49,46 @@ const StudentsListPage = () => {
     //states
     const [students, setStudents] = useState<StudentDetails[]>([]);
 
-    useEffect(() => {
-        getAllStudents();
-    },[])
+    //store students count
+    const [studentCount, setStudentCount] = useState<number>(0);
+
+    //page
+    const searchParams = useSearchParams();
+    const currentPage = Number(searchParams.get('page') || 1);
 
     //get all student details
     const getAllStudents = async () => {
         try {
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/students`);
-            console.log(response.data);
-            setStudents(response.data);
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/students`, {
+                params: {
+                    page: currentPage,
+                    size: ITEM_PER_PAGE
+                }
+            });
+            const payload = response.data;
+
+            const fetchedStudents: StudentDetails[] = Array.isArray(payload)
+                ? payload
+                : Array.isArray(payload?.content)
+                    ? payload.content
+                    : Array.isArray(payload?.data)
+                        ? payload.data
+                        : [];
+
+            const totalCount = Number(
+                payload?.totalElements ??
+                payload?.totalCount ??
+                payload?.count ??
+                payload?.meta?.total ??
+                fetchedStudents.length
+            );
+
+            const startIndex = (currentPage - 1) * ITEM_PER_PAGE;
+            const endIndex = startIndex + ITEM_PER_PAGE;
+            setStudents(fetchedStudents.slice(startIndex, endIndex));
+            setStudentCount(Number.isFinite(totalCount) ? totalCount : fetchedStudents.length);
         }catch (err) {
-            let message = 'Failed to fetch teachers. Please try again later.';
+            let message = 'Failed to fetch students. Please try again later.';
 
             if (axios.isAxiosError(err)) {
                 message = err.response?.data?.message || err.message || message;
@@ -77,9 +96,13 @@ const StudentsListPage = () => {
                 message = err.message;
             }
 
-            console.error('Error fetching teachers:', err);
+            console.error('Error fetching students:', err);
         }
     }
+
+    useEffect(() => {
+        getAllStudents();
+    }, [currentPage]);
 
     const renderRow = (item: StudentDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
@@ -146,7 +169,7 @@ const StudentsListPage = () => {
             {/*  LIST  */}
             <Table columns={columns} renderRow={renderRow} data={students}/>
             {/*   PAGINATION */}
-            <Pagination/>
+            <Pagination page={currentPage} count={studentCount}/>
         </div>
     );
 }
