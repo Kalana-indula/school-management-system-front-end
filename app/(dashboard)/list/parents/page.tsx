@@ -1,6 +1,6 @@
 'use client'
 
-import React, {useEffect, useState} from 'react'
+import React, {useCallback, useEffect, useState} from 'react'
 import TableSearch from "@/app/components/TableSearch";
 import Image from "next/image";
 import Pagination from "@/app/components/Pagination";
@@ -10,6 +10,7 @@ import FormModal from "@/app/components/FormModal";
 import {ParentDetails} from "@/types/entityTypes";
 import axios from "axios";
 import {useSearchParams} from "next/navigation";
+import {ITEM_PER_PAGE} from "@/lib/settings";
 
 const columns = [
     {
@@ -40,18 +41,45 @@ const columns = [
 const ParentsListPage = () => {
 
     const [parents,setParents]=useState<ParentDetails []>([]);
+    const [parentCount, setParentCount] = useState<number>(0);
 
-    useEffect(() => {
-        getParentsList();
-    }, []);
+    const searchParams = useSearchParams();
+    const currentPage = Number(searchParams.get('page') || 1);
 
-    const getParentsList = async () => {
+    const getParentsList = useCallback(async () => {
         try{
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/parents`);
-            console.log(response.data);
-            setParents(response.data);
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/parents`, {
+                params: {
+                    page: currentPage,
+                    size: ITEM_PER_PAGE
+                }
+            });
+
+            const payload = response.data;
+
+            const fetchedParents: ParentDetails[] = Array.isArray(payload)
+                ? payload
+                : Array.isArray(payload?.content)
+                    ? payload.content
+                    : Array.isArray(payload?.data)
+                        ? payload.data
+                        : [];
+
+            const totalCount = Number(
+                payload?.totalElements ??
+                payload?.totalCount ??
+                payload?.count ??
+                payload?.meta?.total ??
+                fetchedParents.length
+            );
+
+            const startIndex = (currentPage - 1) * ITEM_PER_PAGE;
+            const endIndex = startIndex + ITEM_PER_PAGE;
+
+            setParents(fetchedParents.slice(startIndex, endIndex));
+            setParentCount(Number.isFinite(totalCount) ? totalCount : fetchedParents.length);
         }catch(err){
-            let message = 'Failed to fetch exams. Please try again later.';
+            let message = 'Failed to fetch parents. Please try again later.';
 
             if (axios.isAxiosError(err)) {
                 message = err.response?.data?.message || err.message || message;
@@ -59,9 +87,14 @@ const ParentsListPage = () => {
                 message = err.message;
             }
 
-            console.error('Error fetching exams:', err);
+            console.error('Error fetching parents:', message);
         }
-    }
+    }, [currentPage]);
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        getParentsList();
+    }, [getParentsList]);
 
     const renderRow = (item: ParentDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
@@ -113,7 +146,7 @@ const ParentsListPage = () => {
             {/*  LIST  */}
             <Table columns={columns} renderRow={renderRow} data={parents}/>
             {/*   PAGINATION */}
-            <Pagination/>
+            <Pagination page={currentPage} count={parentCount}/>
         </div>
     );
 }
