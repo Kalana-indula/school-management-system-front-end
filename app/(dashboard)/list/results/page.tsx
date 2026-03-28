@@ -10,6 +10,8 @@ import {role} from "@/lib/data";
 import {ResultDetails} from "@/types/entityTypes";
 import axios from "axios";
 import FormModal from "@/app/components/FormModal";
+import {useSearchParams} from "next/navigation";
+import {ITEM_PER_PAGE} from "@/lib/settings";
 
 const columns = [
     {
@@ -48,18 +50,43 @@ const columns = [
 
 const ResultListPage = () => {
 
-    const [results,setResults]=useState<ResultDetails []>([]);
+    const [results, setResults] = useState<ResultDetails []>([]);
+    const [resultCount, setResultCount] = useState<number>(0);
 
-    useEffect(()=>{
-        getResultList();
-    },[]);
+    const searchParams = useSearchParams();
+    const currentPage = Number(searchParams.get('page') || 1);
 
-    const getResultList= async()=>{
+    const getResultList = async () => {
         try {
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/results`);
-            console.log(response.data);
-            setResults(response.data);
-        }catch (err){
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/results`, {
+                params: {
+                    page: currentPage,
+                    size: ITEM_PER_PAGE
+                }
+            });
+            const payload = response.data;
+
+            const fetchedResults: ResultDetails[] = Array.isArray(payload)
+                ? payload
+                : Array.isArray(payload?.content)
+                    ? payload.content
+                    : Array.isArray(payload?.data)
+                        ? payload.data
+                        : [];
+
+            const totalCount = Number(
+                payload?.totalElements ??
+                payload?.totalCount ??
+                payload?.count ??
+                payload?.meta?.total ??
+                fetchedResults.length
+            );
+
+            const startIndex = (currentPage - 1) * ITEM_PER_PAGE;
+            const endIndex = startIndex + ITEM_PER_PAGE;
+            setResults(fetchedResults.slice(startIndex, endIndex));
+            setResultCount(Number.isFinite(totalCount) ? totalCount : fetchedResults.length);
+        } catch (err) {
             let message = 'Failed to fetch results. Please try again later.';
 
             if (axios.isAxiosError(err)) {
@@ -71,6 +98,10 @@ const ResultListPage = () => {
             console.error('Error fetching results:', err);
         }
     }
+
+    useEffect(() => {
+        getResultList();
+    }, [currentPage]);
 
     const renderRow = (item: ResultDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
@@ -122,7 +153,7 @@ const ResultListPage = () => {
             {/*  LIST  */}
             <Table columns={columns} renderRow={renderRow} data={results}/>
             {/*   PAGINATION */}
-            <Pagination/>
+            <Pagination page={currentPage} count={resultCount}/>
         </div>
     );
 }

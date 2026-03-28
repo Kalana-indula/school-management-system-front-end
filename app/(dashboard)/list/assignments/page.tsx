@@ -6,18 +6,12 @@ import Image from "next/image";
 import Pagination from "@/app/components/Pagination";
 import Table from "@/app/components/Table";
 import Link from "next/link";
-import {assignmentsData, role} from "@/lib/data";
+import { role} from "@/lib/data";
 import {AssignmentDetails} from "@/types/entityTypes";
 import axios from "axios";
 import FormModal from "@/app/components/FormModal";
-
-type Assignment = {
-    id: number;
-    subject: string;
-    class: string;
-    teacher:string;
-    dueDate: string;
-}
+import {useSearchParams} from "next/navigation";
+import {ITEM_PER_PAGE} from "@/lib/settings";
 
 const columns = [
     {
@@ -47,17 +41,43 @@ const columns = [
 const AssignmentListPage = () => {
 
     const [assignments,setAssignments]=useState<AssignmentDetails []>([]);
+    const [assignmentCount, setAssignmentCount] = useState<number>(0);
 
-    useEffect(()=>{
-        getAssignmentList();
-    },[]);
+    const searchParams = useSearchParams();
+    const currentPage = Number(searchParams.get('page') || 1);
 
     const getAssignmentList = async () => {
 
         try {
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/assignments`);
-            console.log(response.data);
-            setAssignments(response.data);
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/assignments`, {
+                params: {
+                    page: currentPage,
+                    size: ITEM_PER_PAGE
+                }
+            });
+            const payload = response.data;
+
+            const fetchedAssignments: AssignmentDetails[] = Array.isArray(payload)
+                ? payload
+                : Array.isArray(payload?.content)
+                    ? payload.content
+                    : Array.isArray(payload?.data)
+                        ? payload.data
+                        : [];
+
+            const totalCount = Number(
+                payload?.totalElements ??
+                payload?.totalCount ??
+                payload?.count ??
+                payload?.meta?.total ??
+                fetchedAssignments.length
+            );
+
+            const startIndex = (currentPage - 1) * ITEM_PER_PAGE;
+            const endIndex = startIndex + ITEM_PER_PAGE;
+
+            setAssignments(fetchedAssignments.slice(startIndex, endIndex));
+            setAssignmentCount(Number.isFinite(totalCount) ? totalCount : fetchedAssignments.length);
         }catch (err){
             let message = 'Failed to fetch assignments. Please try again later.';
 
@@ -70,6 +90,11 @@ const AssignmentListPage = () => {
             console.error('Error fetching assignments:', err);
         }
     }
+
+    useEffect(()=>{
+        getAssignmentList();
+    },[currentPage]);
+
 
     const renderRow = (item: AssignmentDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
@@ -123,7 +148,7 @@ const AssignmentListPage = () => {
             {/*  LIST  */}
             <Table columns={columns} renderRow={renderRow} data={assignments}/>
             {/*   PAGINATION */}
-            <Pagination/>
+            <Pagination page={currentPage} count={assignmentCount}/>
         </div>
     );
 }

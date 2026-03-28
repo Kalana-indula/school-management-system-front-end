@@ -10,6 +10,8 @@ import {role} from "@/lib/data";
 import axios from "axios";
 import {EventDetails} from "@/types/entityTypes";
 import FormModal from "@/app/components/FormModal";
+import {useSearchParams} from "next/navigation";
+import {ITEM_PER_PAGE} from "@/lib/settings";
 
 
 const columns = [
@@ -45,16 +47,41 @@ const columns = [
 const EventListPage = () => {
 
     const [events,setEvents]=useState<EventDetails []>([]);
+    const [eventCount, setEventCount] = useState<number>(0);
 
-    useEffect(() => {
-        getEventList();
-    }, []);
+    const searchParams = useSearchParams();
+    const currentPage = Number(searchParams.get('page') || 1);
 
     const getEventList = async () => {
         try {
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/events`);
-            console.log(response.data);
-            setEvents(response.data);
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/events`, {
+                params: {
+                    page: currentPage,
+                    size: ITEM_PER_PAGE
+                }
+            });
+            const payload = response.data;
+
+            const fetchedEvents: EventDetails[] = Array.isArray(payload)
+                ? payload
+                : Array.isArray(payload?.content)
+                    ? payload.content
+                    : Array.isArray(payload?.data)
+                        ? payload.data
+                        : [];
+
+            const totalCount = Number(
+                payload?.totalElements ??
+                payload?.totalCount ??
+                payload?.count ??
+                payload?.meta?.total ??
+                fetchedEvents.length
+            );
+
+            const startIndex = (currentPage - 1) * ITEM_PER_PAGE;
+            const endIndex = startIndex + ITEM_PER_PAGE;
+            setEvents(fetchedEvents.slice(startIndex, endIndex));
+            setEventCount(Number.isFinite(totalCount) ? totalCount : fetchedEvents.length);
         }catch (err){
             let message = 'Failed to fetch events. Please try again later.';
 
@@ -67,6 +94,10 @@ const EventListPage = () => {
             console.error('Error fetching events:', err);
         }
     }
+
+    useEffect(() => {
+        getEventList();
+    }, [currentPage]);
 
     const renderRow = (item: EventDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
@@ -115,7 +146,7 @@ const EventListPage = () => {
             {/*  LIST  */}
             <Table columns={columns} renderRow={renderRow} data={events}/>
             {/*   PAGINATION */}
-            <Pagination/>
+            <Pagination page={currentPage} count={eventCount}/>
         </div>
     );
 }

@@ -10,6 +10,8 @@ import { role} from "@/lib/data";
 import {ExamDetails} from "@/types/entityTypes";
 import axios from "axios";
 import FormModal from "@/app/components/FormModal";
+import {useSearchParams} from "next/navigation";
+import {ITEM_PER_PAGE} from "@/lib/settings";
 
 const columns = [
     {
@@ -39,16 +41,41 @@ const columns = [
 const ExamListPage = () => {
 
     const [exams,setExams] = useState<ExamDetails[]>([]);
+    const [examCount, setExamCount] = useState<number>(0);
 
-    useEffect(() => {
-        getExamList();
-    }, []);
+    const searchParams = useSearchParams();
+    const currentPage = Number(searchParams.get('page') || 1);
 
     const getExamList = async ()=>{
         try {
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/exams`);
-            console.log(response.data);
-            setExams(response.data);
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/exams`, {
+                params: {
+                    page: currentPage,
+                    size: ITEM_PER_PAGE
+                }
+            });
+            const payload = response.data;
+
+            const fetchedExams: ExamDetails[] = Array.isArray(payload)
+                ? payload
+                : Array.isArray(payload?.content)
+                    ? payload.content
+                    : Array.isArray(payload?.data)
+                        ? payload.data
+                        : [];
+
+            const totalCount = Number(
+                payload?.totalElements ??
+                payload?.totalCount ??
+                payload?.count ??
+                payload?.meta?.total ??
+                fetchedExams.length
+            );
+
+            const startIndex = (currentPage - 1) * ITEM_PER_PAGE;
+            const endIndex = startIndex + ITEM_PER_PAGE;
+            setExams(fetchedExams.slice(startIndex, endIndex));
+            setExamCount(Number.isFinite(totalCount) ? totalCount : fetchedExams.length);
         }catch (err){
             let message = 'Failed to fetch exams. Please try again later.';
 
@@ -61,6 +88,10 @@ const ExamListPage = () => {
             console.error('Error fetching exams:', err);
         }
     }
+
+    useEffect(() => {
+        getExamList();
+    }, [currentPage]);
 
     const renderRow = (item: ExamDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
@@ -114,7 +145,7 @@ const ExamListPage = () => {
             {/*  LIST  */}
             <Table columns={columns} renderRow={renderRow} data={exams}/>
             {/*   PAGINATION */}
-            <Pagination/>
+            <Pagination page={currentPage} count={examCount}/>
         </div>
     );
 }

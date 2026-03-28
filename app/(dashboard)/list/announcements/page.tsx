@@ -10,6 +10,8 @@ import {role} from "@/lib/data";
 import {AnnouncementDetails} from "@/types/entityTypes";
 import axios from "axios";
 import FormModal from "@/app/components/FormModal";
+import {useSearchParams} from "next/navigation";
+import {ITEM_PER_PAGE} from "@/lib/settings";
 
 const columns = [
     {
@@ -34,18 +36,43 @@ const columns = [
 const AnnouncementListPage = () => {
 
     const [announcements,setAnnouncements] = useState<AnnouncementDetails []>([]);
+    const [announcementCount, setAnnouncementCount] = useState<number>(0);
 
-    useEffect(() => {
-        getAnnouncementList();
-    },[]);
+    const searchParams = useSearchParams();
+    const currentPage = Number(searchParams.get('page') || 1);
 
     const getAnnouncementList = async ()=>{
         try {
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/announcements`);
-            console.log(response.data);
-            setAnnouncements(response.data);
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/announcements`, {
+                params: {
+                    page: currentPage,
+                    size: ITEM_PER_PAGE
+                }
+            });
+            const payload = response.data;
+
+            const fetchedAnnouncements: AnnouncementDetails[] = Array.isArray(payload)
+                ? payload
+                : Array.isArray(payload?.content)
+                    ? payload.content
+                    : Array.isArray(payload?.data)
+                        ? payload.data
+                        : [];
+
+            const totalCount = Number(
+                payload?.totalElements ??
+                payload?.totalCount ??
+                payload?.count ??
+                payload?.meta?.total ??
+                fetchedAnnouncements.length
+            );
+
+            const startIndex = (currentPage - 1) * ITEM_PER_PAGE;
+            const endIndex = startIndex + ITEM_PER_PAGE;
+            setAnnouncements(fetchedAnnouncements.slice(startIndex, endIndex));
+            setAnnouncementCount(Number.isFinite(totalCount) ? totalCount : fetchedAnnouncements.length);
         }catch (err){
-            let message = 'Failed to fetch exams. Please try again later.';
+            let message = 'Failed to fetch announcements. Please try again later.';
 
             if (axios.isAxiosError(err)) {
                 message = err.response?.data?.message || err.message || message;
@@ -53,9 +80,13 @@ const AnnouncementListPage = () => {
                 message = err.message;
             }
 
-            console.error('Error fetching exams:', err);
+            console.error('Error fetching announcements:', err);
         }
     }
+
+    useEffect(() => {
+        getAnnouncementList();
+    },[currentPage]);
 
     const renderRow = (item: AnnouncementDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
@@ -102,7 +133,7 @@ const AnnouncementListPage = () => {
             {/*  LIST  */}
             <Table columns={columns} renderRow={renderRow} data={announcements}/>
             {/*   PAGINATION */}
-            <Pagination/>
+            <Pagination page={currentPage} count={announcementCount}/>
         </div>
     );
 }
