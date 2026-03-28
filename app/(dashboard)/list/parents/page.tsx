@@ -37,82 +37,31 @@ const columns = [
     }
 ]
 
-const getStudentNames = (value: unknown): string[] => {
-    if (!Array.isArray(value)) return [];
-
-    return value
-        .map((student) => {
-            if (typeof student === "string") return student;
-
-            if (student && typeof student === "object") {
-                const record = student as Record<string, unknown>;
-
-                if (typeof record.name === "string") return record.name;
-                if (typeof record.studentName === "string") return record.studentName;
-                if (typeof record.fullName === "string") return record.fullName;
-            }
-
-            return null;
-        })
-        .filter((studentName): studentName is string => Boolean(studentName));
-};
-
-const normalizeParent = (parent: unknown): ParentDetails => {
-    const record = (parent ?? {}) as Record<string, unknown>;
-
-    return {
-        id: typeof record.id === "number" ? record.id : 0,
-        name: typeof record.name === "string" ? record.name : "Unknown parent",
-        phone: typeof record.phone === "string" ? record.phone : "N/A",
-        address: typeof record.address === "string" ? record.address : "N/A",
-        email: typeof record.email === "string" ? record.email : undefined,
-        students: getStudentNames(record.students ?? record.children ?? record.studentNames),
-    };
-};
-
-
 const ParentsListPage = () => {
 
-    //states
-    const [parents, setParents] = useState<ParentDetails[]>([])
-
-    //store students count
-    const [studentCount, setStudentCount] = useState<number>(0);
-
-    //page
-    const searchParams = useSearchParams();
-    const currentPage = Number(searchParams.get('page') || 1);
+    const [parents,setParents]=useState<ParentDetails []>([]);
 
     useEffect(() => {
-        let isMounted = true;
+        getParentsList();
+    }, []);
 
-        const getParents = async () => {
-            try {
-                const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/parents`);
-                console.log(response.data);
+    const getParentsList = async () => {
+        try{
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/parents`);
+            console.log(response.data);
+            setParents(response.data);
+        }catch(err){
+            let message = 'Failed to fetch exams. Please try again later.';
 
-                if (!isMounted) return;
-
-                const parentList = Array.isArray(response.data)
-                    ? response.data.map(normalizeParent)
-                    : [];
-                setParents(parentList);
-            } catch (err) {
-                if (axios.isAxiosError(err)) {
-                    console.error('Error fetching parents:', err.response?.data?.message || err.message);
-                } else if (err instanceof Error) {
-                    console.error('Error fetching parents:', err.message);
-                } else {
-                    console.error('Error fetching parents:', err);
-                }
+            if (axios.isAxiosError(err)) {
+                message = err.response?.data?.message || err.message || message;
+            } else if (err instanceof Error) {
+                message = err.message;
             }
-        };
-        getParents();
 
-        return () => {
-            isMounted = false;
-        };
-    }, [])
+            console.error('Error fetching exams:', err);
+        }
+    }
 
     const renderRow = (item: ParentDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
@@ -123,7 +72,7 @@ const ParentsListPage = () => {
                 </div>
             </td>
             <td className="hidden md:table-cell">
-                {item.students.length > 0 ? item.students.join(", ") : "No students assigned"}
+                {item.studentNames}
             </td>
             <td className="hidden md:table-cell">{item.phone}</td>
             <td className="hidden md:table-cell">{item.address}</td>

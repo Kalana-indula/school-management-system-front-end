@@ -27,7 +27,7 @@ export interface ParentDetails {
     phone: string;
     address: string;
     email?: string;
-    students: string[];
+    studentNames: string;
 }
 
 export interface SubjectDetails {
