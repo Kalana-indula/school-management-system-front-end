@@ -6,7 +6,7 @@ import Image from "next/image";
 import Pagination from "@/app/components/Pagination";
 import Table from "@/app/components/Table";
 import Link from "next/link";
-import {role, teachersData} from "@/lib/data";
+import {role} from "@/lib/data";
 import FormModal from "@/app/components/FormModal";
 import {TeacherDetails} from "@/types/entityTypes";
 import axios from "axios";
@@ -131,7 +131,10 @@ const TeachersListPage = () => {
             <td className="hidden md:table-cell">{item.address}</td>
             <td>
                 <div className="flex items-center gap-2">
-                    <Link href={`/list/teachers/${item.teacherId}`}>
+                    <Link href={{
+                        pathname:`/list/teachers/${item.teacherId}`,
+                        query:{id:item.id}
+                    }}>
                         <button className="w-7 h-7 flex items-center justify-center rounded-full bg-myskyblue">
                             <Image src={`/view.png`} alt={``} width={16} height={16}/>
                         </button>

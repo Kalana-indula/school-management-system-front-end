@@ -1,12 +1,46 @@
-import React from 'react'
+'use client'
+
+import React, {useEffect, useState} from 'react'
 import Image from "next/image";
 import BigCalendar from "@/app/components/BigCalendar";
 import Announcements from "@/app/components/Announcements";
 import Link from "next/link";
 import Performance from "@/app/components/Performance";
 import FormModal from "@/app/components/FormModal";
+import {useSearchParams} from "next/navigation";
+import axios, {AxiosError} from "axios";
+import {TeacherDetails} from "@/types/entityTypes";
 
 const SingleTeacherPage = () => {
+
+    const [teacherDetails,setTeachersDetails] = useState<TeacherDetails>();
+
+    const searchParams=useSearchParams();
+    const idParam=searchParams.get("id");
+    const id=idParam ? Number(idParam) : null;
+
+    const teachersBirthday=teacherDetails?.birthday
+        ? new Date(teacherDetails.birthday).toLocaleDateString()
+        : "";
+
+    console.log(id);
+
+    useEffect(() => {
+        if(id === null || isNaN(id)) return;
+
+        getSingleTeacherDetails(id);
+    }, [id]);
+
+    const getSingleTeacherDetails = async (teacherId:number)=>{
+        try{
+            const response=await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/teachers/${teacherId}`);
+            console.log(response.data);
+            setTeachersDetails(response.data);
+        }catch(error){
+          console.log(error);
+        }
+    }
+
     return (
         <div className="flex-1 p-4 flex flex-col gap-4 xl:flex-row">
             {/*  LEFT  */}
@@ -28,7 +62,7 @@ const SingleTeacherPage = () => {
 
                             <div className="flex items-center justify-center gap-4">
                                 <h1 className="text-xl font-semibold">
-                                    Leonard Synder
+                                    {teacherDetails?.name} {teacherDetails?.surname}
                                 </h1>
                                 <FormModal
                                     table="teacher"
@@ -54,19 +88,19 @@ const SingleTeacherPage = () => {
                             <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-medium">
                                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                                     <Image src="/blood.png" alt="" width={14} height={14}/>
-                                    <span>A+</span>
+                                    <span>{teacherDetails?.bloodType}</span>
                                 </div>
                                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                                     <Image src="/date.png" alt="" width={14} height={14}/>
-                                    <span>March 2026 </span>
+                                    <span>{teachersBirthday} </span>
                                 </div>
                                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                                     <Image src="/mail.png" alt="" width={14} height={14}/>
-                                    <span>user@example.com</span>
+                                    <span>{teacherDetails?.email}</span>
                                 </div>
                                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                                     <Image src="/phone.png" alt="" width={14} height={14}/>
-                                    <span>+1 456 435 345</span>
+                                    <span>{teacherDetails?.phone}</span>
                                 </div>
                             </div>
                         </div>
@@ -151,7 +185,7 @@ const SingleTeacherPage = () => {
                     <div className="mt-4 flex gap-4 flex-wrap text-xs text-gray-500">
                         <Link
                             className="p-3 rounded-md bg-myskyblue"
-                            href={`/`}
+                            href={`/list/classes?supervisorId=${"teacher2"}`}
                         >
                             Teacher&apos;s Classes
                         </Link>

@@ -6,7 +6,7 @@ import Image from "next/image";
 import Pagination from "@/app/components/Pagination";
 import Table from "@/app/components/Table";
 import Link from "next/link";
-import {classesData, lessonsData, role, subjectsData} from "@/lib/data";
+import {role} from "@/lib/data";
 import {LessonDetails} from "@/types/entityTypes";
 import axios from "axios";
 import FormModal from "@/app/components/FormModal";

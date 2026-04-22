@@ -3,8 +3,11 @@ export interface TeacherDetails{
     address: string;
     classes: string[];
     email?: string;
+    bloodType?: string;
+    birthday?: Date;
     img: string;
     name: string;
+    surname: string;
     phone: string;
     subjects: string[];
     teacherId: string;
