@@ -8,7 +8,7 @@ import Table from "@/app/components/Table";
 import Link from "next/link";
 import {role} from "@/lib/data";
 import {ClassRoomDetails} from "@/types/entityTypes";
-import axios from "axios";
+import axios, {AxiosError} from "axios";
 import FormModal from "@/app/components/FormModal";
 import {useSearchParams} from "next/navigation";
 import {ITEM_PER_PAGE} from "@/lib/settings";
@@ -46,6 +46,9 @@ const ClassListPage = () => {
 
     const searchParams = useSearchParams();
     const currentPage = Number(searchParams.get('page') || 1);
+
+    //get supervisor id
+    const supervisorIdParam=searchParams.get(`supervisorId`);
 
     const getAllClassList = async () => {
         try {
@@ -89,9 +92,33 @@ const ClassListPage = () => {
         }
     }
 
+    const getClassesByTeacher= async (id:number)=>{
+        try {
+            const response=await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/teachers/${id}/classes`);
+            console.log(response.data);
+        }catch (err){
+            if(err instanceof AxiosError){
+                const errorMessage=err.response?.data?.message || err.message || "An error occurred";
+                console.error(errorMessage);
+            }else if(err instanceof Error){
+                console.log(err.message);
+            }else{
+                console.log("An unknown error");
+            }
+        }
+    }
+
     useEffect(() => {
-        getAllClassList();
-    }, [currentPage])
+        if(supervisorIdParam){
+            const supervisorId=Number(supervisorIdParam);
+
+            if(!isNaN(supervisorId)){
+                getClassesByTeacher(supervisorId);
+            }
+        }else{
+            getAllClassList();
+        }
+    }, [currentPage,supervisorIdParam]);
 
     const renderRow = (item: ClassRoomDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
