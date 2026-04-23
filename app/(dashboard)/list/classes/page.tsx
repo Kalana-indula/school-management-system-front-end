@@ -1,6 +1,6 @@
 'use client'
 
-import React, {useEffect, useState} from 'react'
+import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import TableSearch from "@/app/components/TableSearch";
 import Image from "next/image";
 import Pagination from "@/app/components/Pagination";
@@ -21,17 +21,17 @@ const columns = [
     {
         header: "Capacity",
         accessor: "capacity",
-        className:"hidden md:table-cell"
+        className: "hidden md:table-cell"
     },
     {
         header: "Grade",
         accessor: "grade",
-        className:"hidden md:table-cell"
+        className: "hidden md:table-cell"
     },
     {
         header: "Supervisor",
         accessor: "supervisor",
-        className:"hidden md:table-cell"
+        className: "hidden md:table-cell"
     },
     {
         header: "Actions",
@@ -48,9 +48,12 @@ const ClassListPage = () => {
     const currentPage = Number(searchParams.get('page') || 1);
 
     //get supervisor id
-    const supervisorIdParam=searchParams.get(`supervisorId`);
+    const supervisorIdParam = searchParams.get(`supervisorId`);
 
-    const getAllClassList = async () => {
+    const parsed = Number(supervisorIdParam);
+    const supervisorId = supervisorIdParam && !isNaN(parsed) ? parsed : null;
+
+    const getAllClassList = useCallback(async () => {
         try {
             const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/classes`, {
                 params: {
@@ -80,7 +83,7 @@ const ClassListPage = () => {
             const endIndex = startIndex + ITEM_PER_PAGE;
             setClassList(fetchedClasses.slice(startIndex, endIndex));
             setClassCount(Number.isFinite(totalCount) ? totalCount : fetchedClasses.length);
-        }catch (err){
+        } catch (err) {
             let message = 'Failed to fetch classes. Please try again later.';
 
             if (axios.isAxiosError(err)) {
@@ -90,35 +93,43 @@ const ClassListPage = () => {
             }
             console.error('Error fetching classes:', err, message);
         }
-    }
+    }, [currentPage]);
 
-    const getClassesByTeacher= async (id:number)=>{
+    const getClassesByTeacher = async (id: number) => {
         try {
-            const response=await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/teachers/${id}/classes`);
+            const response = await axios.get(
+                `${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/teachers/${id}/classes`
+            );
             console.log(response.data);
-        }catch (err){
-            if(err instanceof AxiosError){
-                const errorMessage=err.response?.data?.message || err.message || "An error occurred";
+            setClassList(response.data);
+        } catch (err) {
+            if (err instanceof AxiosError) {
+                if(err.response?.status === 404) {
+                    console.warn("No classes found for teacher id: ",id);
+
+                    setClassList([]);
+                    return;
+                }
+                const errorMessage = err.response?.data?.message || err.message || "An error occurred";
                 console.error(errorMessage);
-            }else if(err instanceof Error){
+            } else if (err instanceof Error) {
                 console.log(err.message);
-            }else{
+            } else {
                 console.log("An unknown error");
             }
         }
-    }
+    };
 
     useEffect(() => {
-        if(supervisorIdParam){
-            const supervisorId=Number(supervisorIdParam);
-
-            if(!isNaN(supervisorId)){
-                getClassesByTeacher(supervisorId);
+        const loadClasses = async () => {
+            if (supervisorId !== null) {
+                await getClassesByTeacher(supervisorId);
+                return;
             }
-        }else{
-            getAllClassList();
-        }
-    }, [currentPage,supervisorIdParam]);
+            await getAllClassList();
+        };
+        void loadClasses();
+    }, [currentPage, supervisorIdParam]);
 
     const renderRow = (item: ClassRoomDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
