@@ -9,7 +9,7 @@ import Table from "@/app/components/Table";
 import Pagination from "@/app/components/Pagination";
 import FormModal from "@/app/components/FormModal";
 import {StudentDetails} from "@/types/entityTypes";
-import axios from "axios";
+import axios, {AxiosError} from "axios";
 import {useSearchParams} from "next/navigation";
 import {ITEM_PER_PAGE} from "@/lib/settings";
 
@@ -56,6 +56,11 @@ const StudentsListPage = () => {
     const searchParams = useSearchParams();
     const currentPage = Number(searchParams.get('page') || 1);
 
+    //get teacher id
+    const teacherIdParam=searchParams.get('teacherId');
+    const parsed=Number(teacherIdParam);
+    const teacherId=teacherIdParam && !isNaN(parsed) ? parsed : null;
+
     //get all student details
     const getAllStudents = async () => {
         try {
@@ -100,8 +105,39 @@ const StudentsListPage = () => {
         }
     }
 
+    const getStudentsByTeacher= async (id:number)=>{
+        try {
+            const response=await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/teachers/${id}/students`);
+            const payload = response.data;
+            setStudents(payload);
+
+        }catch (err) {
+            if(err instanceof AxiosError){
+                if(err.response?.status === 404){
+                    console.warn("No students found for teacher id: ",id);
+                    setStudents([]);
+                    return;
+                }
+                const errorMessage=err.response?.data?.message || err.message || "An error occurred";
+                console.error(errorMessage);
+            }else if (err instanceof Error){
+                console.log(err.message);
+            }else{
+                console.log("An unknown error");
+            }
+        }
+    };
+
     useEffect(() => {
-        getAllStudents();
+        const loadStudents=async ()=>{
+            if(teacherId !== null){
+                await getStudentsByTeacher(teacherId);
+                return;
+            }
+
+            await getAllStudents();
+        };
+        void loadStudents();
     }, [currentPage]);
 
     const renderRow = (item: StudentDetails) => (
