@@ -9,7 +9,7 @@ import Link from "next/link";
 import {role} from "@/lib/data";
 import FormModal from "@/app/components/FormModal";
 import {TeacherDetails} from "@/types/entityTypes";
-import axios from "axios";
+import axios, {AxiosError} from "axios";
 import {ITEM_PER_PAGE} from "@/lib/settings";
 import {useSearchParams} from "next/navigation";
 
@@ -60,6 +60,11 @@ const TeachersListPage = () => {
     const searchParams = useSearchParams();
     const currentPage = Number(searchParams.get('page') || 1);
 
+    const studentIdParam=searchParams.get('studentId');
+    const parsedStudentId=Number(studentIdParam);
+
+    const studentId=studentIdParam && !isNaN(parsedStudentId) ? parsedStudentId : null;
+
     //fetch all teacher details
     const getAllTeachers = async () => {
         try {
@@ -97,17 +102,49 @@ const TeachersListPage = () => {
 
             if (axios.isAxiosError(err)) {
                 message = err.response?.data?.message || err.message || message;
+                console.error(message);
             } else if (err instanceof Error) {
                 message = err.message;
+                console.error(message);
             }
 
             console.error('Error fetching teachers:', err);
         }
     }
 
+    const getTeachersByStudent = async (id:number)=>{
+        try {
+            const response=await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/students/${id}/teachers`);
+            setTeachers(response.data);
+        }catch(err){
+            if(err instanceof AxiosError){
+                if(err.response?.status === 404){
+                    console.log("No teachers found for studend id : ",id);
+                    setTeachers([]);
+                    return;
+                }
+
+                const errMessage=err.response?.data?.message || err.message || "An error occurred";
+                console.log(errMessage);
+            }else if(err instanceof Error){
+                console.error('Error fetching teachers:', err);
+            }else{
+                console.log("An unknown error occurred");
+            }
+        }
+    };
+
     useEffect(() => {
-       getAllTeachers();
-    }, [currentPage]);
+        const loadTeachers= async ()=>{
+            if(studentId !== null){
+                await getTeachersByStudent(studentId);
+                return;
+            }
+
+            await getAllTeachers();
+        };
+        void loadTeachers();
+    }, [currentPage, studentId]);
 
     const renderRow = (item: TeacherDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
