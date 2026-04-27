@@ -51,6 +51,12 @@ const ExamListPage = () => {
 
     const teacherId=teacherIdParam && !isNaN(parsed) ? parsed : null;
 
+    //get student params
+    const studentParams=searchParams.get('studentId');
+    const parsedStudentId=Number(studentParams);
+
+    const studentId=studentParams && !isNaN(parsedStudentId) ? parsedStudentId :null;
+
     const getExamList = async ()=>{
         try {
             const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/exams`, {
@@ -120,10 +126,36 @@ const ExamListPage = () => {
         }
     };
 
+    const getExamsByStudent = async (id:number)=>{
+        try {
+            const response=await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/students/${id}/exams`);
+            setExams(response.data);
+        }catch (err){
+            if(err instanceof AxiosError){
+                if(err.response?.status === 404){
+                    console.log("No results found for student id : ",id);
+                    setExams([]);
+                    return;
+                }
+
+                const errMessage=err.response?.data?.message || err.message || "An error occurred";
+                console.log(errMessage);
+            }else if(err instanceof Error){
+                console.log(err.message);
+            }else{
+                console.log("An unknown error");
+            }
+        }
+
+    }
+
     useEffect(() => {
         const loadExams=async ()=>{
             if(teacherId !== null){
                 await getExamsByTeacher(teacherId);
+                return;
+            }else if(studentId !==null){
+                await getExamsByStudent(studentId);
                 return;
             }
 
@@ -131,7 +163,7 @@ const ExamListPage = () => {
         };
 
         void loadExams();
-    }, [currentPage,teacherId]);
+    }, [currentPage,teacherId,studentId]);
 
     const renderRow = (item: ExamDetails) => (
         <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mypurpleLight">
