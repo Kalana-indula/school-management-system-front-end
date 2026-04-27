@@ -51,6 +51,12 @@ const AssignmentListPage = () => {
 
     const teacherId=teacherIdParam && !isNaN(parsed) ? parsed : null;
 
+    //fetch student details
+    const studentIdParams=searchParams.get('studentId');
+    const parsedStudentId=Number(studentIdParams);
+
+    const studentId=studentIdParams && !isNaN(parsedStudentId) ? parsedStudentId : null;
+
     const getAssignmentList = async () => {
 
         try {
@@ -119,18 +125,43 @@ const AssignmentListPage = () => {
         }
     }
 
+    //
+    const getAssignmentsByStudent = async (id:number) => {
+        try {
+            const response= await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/students/${id}/assignments`);
+            setAssignments(response.data);
+        }catch(err){
+            if(err instanceof AxiosError){
+                if(err.response?.status === 404){
+                    console.log("No results found for student id : ",id);
+                    setAssignments([]);
+                    return;
+                }
+
+                const errMessage=err.response?.data?.message || err.message || "An error occurred";
+                console.log(errMessage);
+            }else if(err instanceof Error){
+                console.log(err.message);
+            }else{
+                console.log("An unknown error");
+            }
+        }
+    };
+
     useEffect(()=>{
         const loadAssignments=async ()=>{
             if(teacherId !==null){
                 await getAssignmentsByTeacher(teacherId);
                 return;
+            }else if(studentId !==null){
+                await getAssignmentsByStudent(studentId);
+                return;
             }
-
             await getAssignmentList();
         };
 
         void loadAssignments()
-    },[currentPage,teacherId]);
+    },[currentPage,teacherId,studentId]);
 
 
     const renderRow = (item: AssignmentDetails) => (
