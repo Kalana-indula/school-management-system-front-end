@@ -23,8 +23,6 @@ const SingleTeacherPage = () => {
         ? new Date(teacherDetails.birthday).toLocaleDateString()
         : "";
 
-    console.log(id);
-
     useEffect(() => {
         if(id === null || isNaN(id)) return;
 
@@ -34,7 +32,6 @@ const SingleTeacherPage = () => {
     const getSingleTeacherDetails = async (teacherId:number)=>{
         try{
             const response=await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/teachers/${teacherId}`);
-            console.log(response.data);
             setTeachersDetails(response.data);
         }catch(error){
           console.log(error);

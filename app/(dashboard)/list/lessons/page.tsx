@@ -46,6 +46,12 @@ const LessonsListPage = () => {
 
     const teacherId=teacherIdParam && !isNaN(parsed) ? parsed :null;
 
+    //get student id details
+    const studentIdParam=searchParams.get(`studentId`);
+    const parsedStudentId=Number(studentIdParam);
+
+    const studentId=parsedStudentId && !isNaN(parsedStudentId) ? parsedStudentId :null;
+
     const getLessonList = async () => {
 
         try{
@@ -116,10 +122,35 @@ const LessonsListPage = () => {
         }
     };
 
+    const getLessonsByStudent = async (id:number)=>{
+        try {
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/students/${id}/lessons`)
+            setLessons(response.data);
+        }catch(err){
+            if(err instanceof AxiosError){
+                if(err.response?.status === 404){
+                    console.warn("No lessons found student id : ",id);
+                    setLessons([]);
+                    return;
+                }
+
+                const errorMessage=err.response?.data?.message || err.message || "An error occurred";
+                console.error(errorMessage);
+            }else if (err instanceof Error){
+                console.log(err.message);
+            }else{
+                console.log("An unknown error");
+            }
+        }
+    }
+
     useEffect(() => {
         const loadLessons= async ()=>{
             if(teacherId !== null){
                 await getLessonsByTeacher(teacherId);
+                return;
+            }else if(studentId !== null){
+                await getLessonsByStudent(studentId);
                 return;
             }
 

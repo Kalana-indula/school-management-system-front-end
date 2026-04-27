@@ -57,9 +57,9 @@ const StudentsListPage = () => {
     const currentPage = Number(searchParams.get('page') || 1);
 
     //get teacher id
-    const teacherIdParam=searchParams.get('teacherId');
-    const parsed=Number(teacherIdParam);
-    const teacherId=teacherIdParam && !isNaN(parsed) ? parsed : null;
+    const teacherIdParam = searchParams.get('teacherId');
+    const parsed = Number(teacherIdParam);
+    const teacherId = teacherIdParam && !isNaN(parsed) ? parsed : null;
 
     //get all student details
     const getAllStudents = async () => {
@@ -92,7 +92,7 @@ const StudentsListPage = () => {
             const endIndex = startIndex + ITEM_PER_PAGE;
             setStudents(fetchedStudents.slice(startIndex, endIndex));
             setStudentCount(Number.isFinite(totalCount) ? totalCount : fetchedStudents.length);
-        }catch (err) {
+        } catch (err) {
             let message = 'Failed to fetch students. Please try again later.';
 
             if (axios.isAxiosError(err)) {
@@ -105,32 +105,32 @@ const StudentsListPage = () => {
         }
     }
 
-    const getStudentsByTeacher= async (id:number)=>{
+    const getStudentsByTeacher = async (id: number) => {
         try {
-            const response=await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/teachers/${id}/students`);
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/teachers/${id}/students`);
             const payload = response.data;
             setStudents(payload);
 
-        }catch (err) {
-            if(err instanceof AxiosError){
-                if(err.response?.status === 404){
-                    console.warn("No students found for teacher id: ",id);
+        } catch (err) {
+            if (err instanceof AxiosError) {
+                if (err.response?.status === 404) {
+                    console.warn("No students found for teacher id: ", id);
                     setStudents([]);
                     return;
                 }
-                const errorMessage=err.response?.data?.message || err.message || "An error occurred";
+                const errorMessage = err.response?.data?.message || err.message || "An error occurred";
                 console.error(errorMessage);
-            }else if (err instanceof Error){
+            } else if (err instanceof Error) {
                 console.log(err.message);
-            }else{
+            } else {
                 console.log("An unknown error");
             }
         }
     };
 
     useEffect(() => {
-        const loadStudents=async ()=>{
-            if(teacherId !== null){
+        const loadStudents = async () => {
+            if (teacherId !== null) {
                 await getStudentsByTeacher(teacherId);
                 return;
             }
@@ -161,7 +161,10 @@ const StudentsListPage = () => {
             <td className="hidden md:table-cell">{item.address}</td>
             <td>
                 <div className="flex items-center gap-2">
-                    <Link href={`/list/students/${item.id}`}>
+                    <Link href={{
+                        pathname: `/list/students/${item.studentId}`,
+                        query: {id: item.id}
+                    }}>
                         <button className="w-7 h-7 flex items-center justify-center rounded-full bg-myskyblue">
                             <Image src={`/view.png`} alt={``} width={16} height={16}/>
                         </button>

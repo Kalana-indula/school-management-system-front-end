@@ -16,12 +16,16 @@ export interface TeacherDetails{
 export interface StudentDetails {
     id: number;
     name: string;
+    surname: string;
     studentId: string;
     grade: number;
     className: string;
     image: string;
     phone?: string;
     address: string;
+    bloodType: string;
+    birthday?: Date;
+    email: string;
 }
 
 export interface ParentDetails {

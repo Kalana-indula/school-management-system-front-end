@@ -8,7 +8,7 @@ import Table from "@/app/components/Table";
 import Link from "next/link";
 import { role} from "@/lib/data";
 import {AssignmentDetails} from "@/types/entityTypes";
-import axios from "axios";
+import axios, {AxiosError} from "axios";
 import FormModal from "@/app/components/FormModal";
 import {useSearchParams} from "next/navigation";
 import {ITEM_PER_PAGE} from "@/lib/settings";
@@ -46,6 +46,11 @@ const AssignmentListPage = () => {
     const searchParams = useSearchParams();
     const currentPage = Number(searchParams.get('page') || 1);
 
+    const teacherIdParam=searchParams.get('teacherId');
+    const parsed=Number(teacherIdParam);
+
+    const teacherId=teacherIdParam && !isNaN(parsed) ? parsed : null;
+
     const getAssignmentList = async () => {
 
         try {
@@ -81,19 +86,51 @@ const AssignmentListPage = () => {
         }catch (err){
             let message = 'Failed to fetch assignments. Please try again later.';
 
-            if (axios.isAxiosError(err)) {
+            if (err instanceof AxiosError) {
                 message = err.response?.data?.message || err.message || message;
+                console.log(message);
             } else if (err instanceof Error) {
                 message = err.message;
+                console.log(message);
             }
 
             console.error('Error fetching assignments:', err);
         }
     }
 
+    const getAssignmentsByTeacher = async (id:number) => {
+        try{
+            const response=await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/teachers/${id}/assignments`);
+            setAssignments(response.data);
+        }catch(err){
+            if(err instanceof AxiosError){
+                if(err.response?.status === 404){
+                    console.warn("No assignments found for teacher id : ",id);
+                    setAssignments([]);
+                    return;
+                }
+                const errorMessage= err.response?.data?.message || err.message || "An error occurred";
+                console.error(errorMessage);
+            }else if(err instanceof Error){
+                console.log(err.message);
+            }else{
+                console.log("An unknown error");
+            }
+        }
+    }
+
     useEffect(()=>{
-        getAssignmentList();
-    },[currentPage]);
+        const loadAssignments=async ()=>{
+            if(teacherId !==null){
+                await getAssignmentsByTeacher(teacherId);
+                return;
+            }
+
+            await getAssignmentList();
+        };
+
+        void loadAssignments()
+    },[currentPage,teacherId]);
 
 
     const renderRow = (item: AssignmentDetails) => (

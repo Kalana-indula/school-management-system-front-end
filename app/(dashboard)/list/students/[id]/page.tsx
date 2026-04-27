@@ -1,11 +1,49 @@
-import React from 'react'
+'use client'
+
+import React, {useEffect, useState} from 'react'
 import Image from "next/image";
 import BigCalendar from "@/app/components/BigCalendar";
 import Announcements from "@/app/components/Announcements";
 import Link from "next/link";
 import Performance from "@/app/components/Performance";
+import {StudentDetails} from "@/types/entityTypes";
+import {useSearchParams} from "next/navigation";
+import axios, {AxiosError} from "axios";
 
 const SingleStudentPage = () => {
+
+    const [studentDetails, setStudentDetails] = useState<StudentDetails>();
+
+    const searchParams=useSearchParams();
+    const idParam=searchParams.get('id');
+    const id=idParam ? Number(idParam) : null;
+
+    const studentBirthday=studentDetails?.birthday
+        ? new Date(studentDetails.birthday).toLocaleDateString()
+        : "";
+
+    const getSingleStudentDetails = async (studentId:number)=>{
+        try{
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/students/${studentId}`);
+            setStudentDetails(response.data);
+        }catch(error){
+            if(error instanceof AxiosError){
+                const errorMessage=error.response?.data?.message || error.message || "An error occurred";
+                console.log(errorMessage);
+            }else if(error instanceof Error){
+                console.log(error.message);
+            }else{
+                console.log("An unknown error");
+            }
+        }
+    };
+
+    useEffect(() => {
+        if(id === null || isNaN(id)) return;
+
+        getSingleStudentDetails(id);
+    }, [id]);
+
     return (
         <div className="flex-1 p-4 flex flex-col gap-4 xl:flex-row">
             {/*  LEFT  */}
@@ -25,7 +63,7 @@ const SingleStudentPage = () => {
                         </div>
                         <div className="w-2/3 flex flex-col justify-between gap-4">
                             <h1 className="text-xl font-semibold">
-                                Leonard Synder
+                                {studentDetails?.name} {studentDetails?.surname}
                             </h1>
                             <p className="text-sm text-gray-500">
                                 Lorem ipsum dolor sit amet, consectetur adipisicing elit.
@@ -33,19 +71,19 @@ const SingleStudentPage = () => {
                             <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-medium">
                                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                                     <Image src="/blood.png" alt="" width={14} height={14}/>
-                                    <span>A+</span>
+                                    <span>{studentDetails?.bloodType}</span>
                                 </div>
                                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                                     <Image src="/date.png" alt="" width={14} height={14}/>
-                                    <span>March 2026 </span>
+                                    <span>{studentBirthday}</span>
                                 </div>
                                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                                     <Image src="/mail.png" alt="" width={14} height={14}/>
-                                    <span>user@example.com</span>
+                                    <span>{studentDetails?.email}</span>
                                 </div>
                                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                                     <Image src="/phone.png" alt="" width={14} height={14}/>
-                                    <span>+1 456 435 345</span>
+                                    <span>{studentDetails?.phone}</span>
                                 </div>
                             </div>
                         </div>
@@ -124,7 +162,7 @@ const SingleStudentPage = () => {
                     <div className="mt-4 flex gap-4 flex-wrap text-xs text-gray-500">
                         <Link
                             className="p-3 rounded-md bg-myskyblue"
-                            href={`/`}
+                            href={`/list/lessons?studentId=${id}`}
                         >
                             Student&apos;s Lessons
                         </Link>
@@ -132,7 +170,7 @@ const SingleStudentPage = () => {
                             className="p-3 rounded-md bg-mypurpleLight"
                             href={`/`}
                         >
-                            Teacher&apos;s Teachers
+                            Student&apos;s Teachers
                         </Link>
                         <Link
                             className="p-3 rounded-md bg-mypeachyellow"
