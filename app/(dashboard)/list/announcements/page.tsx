@@ -27,10 +27,10 @@ const columns = [
         accessor: "date",
         className: "hidden md:table-cell",
     },
-    {
+    ...(role === "admin"? [{
         header: "Actions",
         accessor: "actions"
-    }
+    }]:[]),
 ]
 
 const AnnouncementListPage = () => {

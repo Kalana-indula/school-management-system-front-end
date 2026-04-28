@@ -32,10 +32,10 @@ const columns = [
         accessor: "dueDate",
         className: "hidden md:table-cell"
     },
-    {
+    ...(role === "admin"? [{
         header: "Actions",
         accessor: "actions"
-    }
+    }]:[]),
 ]
 
 const AssignmentListPage = () => {
